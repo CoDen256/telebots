@@ -86,11 +86,86 @@ def quotes_list(message):
         bot.send_message(message.chat.id, "Список цитат волка пуст. Волк молчит, а значит перебивать его не стоит.")
         return
 
-    for i, quote in enumerate(lists):
-        quotes += f"{i + 1}.{quote.value}\n"
-    bot.send_message(message.chat.id, text=quotes)
+        for i, quote in enumerate(lists):
+            quotes += f"{i+1}. {quote.value}\n"
+        bot.send_message(message.chat.id,
+                         text=quotes)
+    except Exception as e:
+        bot.send_message(message.chat.id, wolf_error)
+        log(str(e))
+""" DAILY """
+@bot.message_handler(commands=['quote_day'])
+def quote_day(message):
+    global last_quote_date
+    try:
+        add_user(message)
+        delta = datetime.now() - last_quote_date
 
+        quotes = list(User.objects.all())
+        if not quotes:
+            bot.send_message(message.chat.id, "Волк не говорит...А значит молчит.")
+            return
+        new_quote = None
+        try:
+            old_quote = Quote.objects.get(of_day=True)
+            if delta.days >= 1:
+                old_quote.of_day = False
+                old_quote.save()
 
+                last_quote_date = datetime.now()
+                bot.send_message(message.chat.id, "Волк думает...")
+                new_quote = random.choice(list(Quote.objects.all()))
+                new_quote.of_day = True
+                new_quote.save()
+            else:
+                new_quote = old_quote
+
+        except Quote.DoesNotExist:
+            bot.send_message(message.chat.id, "Волк думает...")
+            last_quote_date = datetime.now()
+            new_quote = random.choice(list(Quote.objects.all()))
+            new_quote.of_day = True
+            new_quote.save()
+
+        bot.send_message(message.chat.id, f"Цитата дня - *{new_quote.value}*!", parse_mode='markdown')
+
+    except Exception as e:
+        bot.send_message(message.chat.id, wolf_error)
+        log(str(e))
+
+@bot.message_handler(commands=['wolf_day'])
+def wolf_day(message):
+    global last_wolf_date
+    try:
+        add_user(message)
+        delta = datetime.now() - last_wolf_date
+        user = None
+        old_user = User.objects.get(of_day=True)
+
+        if delta.days >= 1:
+            old_user.of_day = False
+            old_user.save()
+
+            user = random.choice(list(User.objects.all()))
+            user.of_day = True
+            user.save()
+
+            last_wolf_date = datetime.now()
+            bot.send_message(message.chat.id, "Проводим анализ личностей...")
+            time.sleep(2)
+            bot.send_message(message.chat.id, "Советуемся с экспертами из цирка...")
+            time.sleep(2)
+            bot.send_message(message.chat.id, "Выбираем волка дня...")
+            time.sleep(2)
+        else:
+            user = old_user
+        bot.send_message(message.chat.id, f"Волк дня - {user.link}!", parse_mode='markdown')
+
+    except Exception as e:
+        bot.send_message(message.chat.id, wolf_error)
+        log(str(e))
+
+""" ANALYSERS """
 @bot.message_handler(content_types=["text"])
 def text_analyser(message):
     for trigger in triggers:

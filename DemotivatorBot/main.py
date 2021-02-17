@@ -1,12 +1,16 @@
 import telebot
-from antonyms import get_antonym_for_word, demotivate_sentence, write_to_template, filename, get_synonym_for_word
+import configparser
+from antonyms import get_antonym_for_word, demotivate_sentence, write_to_template, get_synonym_for_word
 from image_generator import generate_demotivator_image
 
-TOKEN = "1301791952:AAHOFxIT4merFrPrWtY1HbvRW8vU7uclLYQ"
-bot = telebot.TeleBot(TOKEN, threaded=False)
-bot.send_message(283382228, "Starting demotivator-bot...")
+config = configparser.ConfigParser()
+config.read('application.cfg')
 
-error = "Ой мне поплохело...\n"
+error_message = "Ой мне поплохело..."
+debug_id = 283382228
+
+bot = telebot.TeleBot(config["BOT"]["token"], threaded=False)
+bot.send_message(debug_id, "Starting Demotivator bot...")
 
 
 @bot.message_handler(commands=['start', 'help'])
@@ -14,17 +18,19 @@ def start(message):
     try:
         bot.send_message(
             message.chat.id,
-            text="Добро пожаловать в *Демотиватор-бота*\nЭто базовые комманды для управления волком.",
+            text="Добро пожаловать в *Демотиватор-бота*\nЭто базовые комманды для управления ботом.",
             parse_mode='markdown'
         )
 
         bot.send_message(
             message.chat.id,
             text="/demotivate {quote} - Демотивирует цитату.\n" + \
-                 "/add {key} {value} - Добавляет демотивирующую цитату.\n"
+                 "/synonym {word} - Находит синоним к данному слову. \n"
+                 "/antonym {word} - Находит антоним к данному слову. \n"
+                 "/add {key} {value} - Добавляет антоним.\n"
         )
     except Exception as e:
-        bot.send_message(message.chat.id, error)
+        bot.send_message(message.chat.id, error_message)
         log(str(e))
 
 
@@ -38,59 +44,61 @@ def demotivate(message):
         demotivated = "нет блять, " + demotivate_sentence(words)
         bot.send_message(message.chat.id, demotivated, parse_mode='markdown')
 
-        generate_demotivator_image(original, demotivated)
+        filename = generate_demotivator_image(original, demotivated)
 
-        image = open('result.jpg', 'rb')
+        image = open(filename, 'rb')
         bot.send_photo(message.chat.id, image)
 
     except Exception as e:
-        bot.send_message(message.chat.id, error + str(e))
+        bot.send_message(message.chat.id, error_message + str(e))
         log(str(e))
 
 
 @bot.message_handler(commands=['add'])
-def demotivate(message):
+def add(message):
     try:
         separated = message.text.split("/add")
         key_value = separated[1].strip().split()
-        key = key_value[0]
-        value = key_value[1]
+        key = key_value[0].strip()
+        value = key_value[1].strip()
 
-        write_to_template(filename, key, value)
+        write_to_template(key, value)
 
         bot.send_message(message.chat.id, key + "=" + value + " is added", parse_mode='markdown')
     except Exception as e:
-        bot.send_message(message.chat.id, error + str(e))
+        bot.send_message(message.chat.id, error_message + str(e))
         log(str(e))
 
 
 @bot.message_handler(commands=['synonym'])
-def demotivate(message):
+def synonym(message):
     try:
         separated = message.text.split("/synonym")
         word = separated[1]
 
-        bot.send_message(message.chat.id, "\n".join(get_synonym_for_word(word)), parse_mode='markdown')
+        bot.send_message(message.chat.id, "\n".join(get_synonym_for_word(word.strip())), parse_mode='markdown')
     except Exception as e:
-        bot.send_message(message.chat.id, error + str(e))
+        bot.send_message(message.chat.id, error_message + str(e))
         log(str(e))
 
+
 @bot.message_handler(commands=['antonym'])
-def demotivate(message):
+def antonym(message):
     try:
         separated = message.text.split("/antonym")
         word = separated[1]
 
-        bot.send_message(message.chat.id, "\n".join(get_antonym_for_word(word)), parse_mode='markdown')
+        bot.send_message(message.chat.id, "\n".join(get_antonym_for_word(word.strip())), parse_mode='markdown')
     except Exception as e:
-        bot.send_message(message.chat.id, error + str(e))
+        bot.send_message(message.chat.id, error_message + str(e))
         log(str(e))
+
 
 """ DEBUG """
 
 
 def log(text):
-    bot.send_message(283382228, text=f"{text}")
+    bot.send_message(debug_id, text=f"{text}")
 
 
 bot.polling()

@@ -1,4 +1,5 @@
 import telebot
+import configparser
 import random
 from django.conf import settings
 from main.models import Quote

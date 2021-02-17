@@ -1,6 +1,6 @@
 import telebot
 import configparser
-from antonyms import get_antonym_for_word, demotivate_sentence, write_to_template, get_synonym_for_word
+from antonyms import *
 from image_generator import generate_demotivator_image
 
 config = configparser.ConfigParser()
